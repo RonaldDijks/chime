@@ -47,12 +47,13 @@ impl Parser {
             .clone()
     }
 
-    fn current(&self) -> Token {
-        self.peek(0)
+    fn next(&mut self) {
+        self.position += 1;
     }
 
     fn expect(&mut self, expected: TokenKind) -> ParserResult<Token> {
         let actual = self.peek(0);
+
         if actual.kind == expected {
             self.position += 1;
             Ok(actual)
@@ -62,15 +63,36 @@ impl Parser {
     }
 
     pub fn parse(&mut self) -> ParserResult<SyntaxTree> {
-        self.parse_expression()
+        self.parse_expression(0)
     }
 
-    fn parse_expression(&mut self) -> ParserResult<SyntaxTree> {
+    fn parse_expression(&mut self, min_bp: u8) -> ParserResult<SyntaxTree> {
         let mut left = self.parse_literal()?;
-        while let Some(kind) = self.current().kind.is_binary_operator() {
-            self.position += 1;
-            let right = self.parse_literal()?;
-            left = SyntaxTree::BinOp(kind, Box::new(left), Box::new(right))
+
+        loop {
+            let token = self.peek(0);
+
+            match token.kind {
+                TokenKind::EndOfFile => break,
+                _ => (),
+            }
+
+            let op = match self.peek(0).kind.is_binary_operator() {
+                Some(op) => Ok(op),
+                None => Err(ParserError::UnexpectedToken),
+            }?;
+
+            let (l_bp, r_bp) = op.precedence();
+
+            if l_bp < min_bp {
+                break;
+            }
+
+            self.next();
+
+            let right = self.parse_expression(r_bp)?;
+
+            left = SyntaxTree::BinOp(op, Box::new(left), Box::new(right))
         }
 
         Ok(left)
