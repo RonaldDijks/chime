@@ -10,11 +10,17 @@ pub enum TokenKind {
     // Float literals
     FloatLiteral,
 
+    // Boolean Literals
+    True,
+    False,
+
     // Operators
     Plus,
     Minus,
     Asterisk,
     Slash,
+    PipePipe,
+    AmpersandAmpersand,
 }
 
 impl TokenKind {
@@ -24,6 +30,16 @@ impl TokenKind {
             TokenKind::Minus => Some(BinOpKind::Sub),
             TokenKind::Asterisk => Some(BinOpKind::Mul),
             TokenKind::Slash => Some(BinOpKind::Div),
+            TokenKind::PipePipe => Some(BinOpKind::LogicalOr),
+            TokenKind::AmpersandAmpersand => Some(BinOpKind::LogicalAnd),
+            _ => None,
+        }
+    }
+
+    pub fn is_keyword(text: &str) -> Option<TokenKind> {
+        match text {
+            "true" => Some(TokenKind::True),
+            "false" => Some(TokenKind::False),
             _ => None,
         }
     }

@@ -28,6 +28,7 @@ impl Parser {
                 continue;
             }
             if token.kind == TokenKind::EndOfFile {
+                tokens.push(token);
                 break;
             }
             tokens.push(token);
@@ -72,14 +73,12 @@ impl Parser {
         loop {
             let token = self.peek(0);
 
-            match token.kind {
+            let op = match token.kind {
                 TokenKind::EndOfFile => break,
-                _ => (),
-            }
-
-            let op = match self.peek(0).kind.is_binary_operator() {
-                Some(op) => Ok(op),
-                None => Err(ParserError::UnexpectedToken),
+                _ => match token.kind.is_binary_operator() {
+                    Some(op) => Ok(op),
+                    None => Err(ParserError::UnexpectedToken),
+                },
             }?;
 
             let (l_bp, r_bp) = op.precedence();
@@ -99,11 +98,38 @@ impl Parser {
     }
 
     fn parse_literal(&mut self) -> ParserResult<SyntaxTree> {
+        let value = self.peek(0);
+
+        match value.kind {
+            TokenKind::FloatLiteral => self.parse_float_literal(),
+            TokenKind::True => self.parse_boolean_literal(),
+            TokenKind::False => self.parse_boolean_literal(),
+            _ => Err(ParserError::UnexpectedToken),
+        }
+    }
+
+    fn parse_float_literal(&mut self) -> ParserResult<SyntaxTree> {
         let value = self
             .expect(TokenKind::FloatLiteral)?
             .text
             .parse()
             .map_err(|_| ParserError::FloatLiteralParse)?;
         Ok(SyntaxTree::F64(value))
+    }
+
+    fn parse_boolean_literal(&mut self) -> ParserResult<SyntaxTree> {
+        let token = self.peek(0);
+
+        let syntax_tree = match token.kind {
+            TokenKind::True => Ok(SyntaxTree::Bool(true)),
+            TokenKind::False => Ok(SyntaxTree::Bool(false)),
+            _ => Err(ParserError::UnexpectedToken),
+        };
+
+        if syntax_tree.is_ok() {
+            self.next();
+        }
+
+        syntax_tree
     }
 }
