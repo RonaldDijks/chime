@@ -6,13 +6,16 @@ pub enum TokenKind {
     EndOfFile,
     BadToken,
     Whitespace,
+    LeftParenthesis,
+    RightParenthesis,
 
     // Float literals
     FloatLiteral,
 
-    // Boolean Literals
+    // Keywords
     True,
     False,
+    Identifier,
 
     // Operators
     Plus,
@@ -36,11 +39,11 @@ impl TokenKind {
         }
     }
 
-    pub fn is_keyword(text: &str) -> Option<TokenKind> {
+    pub fn keyword(text: &str) -> TokenKind {
         match text {
-            "true" => Some(TokenKind::True),
-            "false" => Some(TokenKind::False),
-            _ => None,
+            "true" => TokenKind::True,
+            "false" => TokenKind::False,
+            _ => TokenKind::Identifier,
         }
     }
 }

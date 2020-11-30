@@ -48,12 +48,18 @@ impl Parser {
             .clone()
     }
 
-    fn next(&mut self) {
+    fn current(&self) -> Token {
+        self.peek(0)
+    }
+
+    fn next(&mut self) -> Token {
+        let token = self.current();
         self.position += 1;
+        token
     }
 
     fn expect(&mut self, expected: TokenKind) -> ParserResult<Token> {
-        let actual = self.peek(0);
+        let actual = self.current();
 
         if actual.kind == expected {
             self.position += 1;
@@ -68,13 +74,14 @@ impl Parser {
     }
 
     fn parse_expression(&mut self, min_bp: u8) -> ParserResult<SyntaxTree> {
-        let mut left = self.parse_literal()?;
+        let mut left = self.parse_primary_statement()?;
 
         loop {
-            let token = self.peek(0);
+            let token = self.current();
 
             let op = match token.kind {
                 TokenKind::EndOfFile => break,
+                TokenKind::RightParenthesis => break,
                 _ => match token.kind.is_binary_operator() {
                     Some(op) => Ok(op),
                     None => Err(ParserError::UnexpectedToken),
@@ -97,15 +104,22 @@ impl Parser {
         Ok(left)
     }
 
-    fn parse_literal(&mut self) -> ParserResult<SyntaxTree> {
-        let value = self.peek(0);
-
+    fn parse_primary_statement(&mut self) -> ParserResult<SyntaxTree> {
+        let value = self.current();
         match value.kind {
+            TokenKind::LeftParenthesis => self.parse_parenthesised_expression(),
             TokenKind::FloatLiteral => self.parse_float_literal(),
             TokenKind::True => self.parse_boolean_literal(),
             TokenKind::False => self.parse_boolean_literal(),
             _ => Err(ParserError::UnexpectedToken),
         }
+    }
+
+    fn parse_parenthesised_expression(&mut self) -> ParserResult<SyntaxTree> {
+        self.expect(TokenKind::LeftParenthesis)?;
+        let expr = self.parse_expression(0)?;
+        self.expect(TokenKind::RightParenthesis)?;
+        Ok(expr)
     }
 
     fn parse_float_literal(&mut self) -> ParserResult<SyntaxTree> {
@@ -118,7 +132,7 @@ impl Parser {
     }
 
     fn parse_boolean_literal(&mut self) -> ParserResult<SyntaxTree> {
-        let token = self.peek(0);
+        let token = self.current();
 
         let syntax_tree = match token.kind {
             TokenKind::True => Ok(SyntaxTree::Bool(true)),

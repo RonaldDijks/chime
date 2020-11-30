@@ -48,21 +48,27 @@ impl Lexer {
         } else if self.current() == '/' {
             self.position += 1;
             TokenKind::Slash
-        } else if self.peek(0) == '|' && self.peek(1) == '|' {
+        } else if self.current() == '(' {
+            self.position += 1;
+            TokenKind::LeftParenthesis
+        } else if self.current() == ')' {
+            self.position += 1;
+            TokenKind::RightParenthesis
+        } else if self.current() == '|' && self.peek(1) == '|' {
             self.position += 2;
             TokenKind::PipePipe
-        } else if self.peek(0) == '&' && self.peek(1) == '&' {
+        } else if self.current() == '&' && self.peek(1) == '&' {
             self.position += 2;
             TokenKind::AmpersandAmpersand
-        } else {
-            while !self.current().is_whitespace() {
+        } else if self.current().is_alphabetic() {
+            while self.current().is_alphanumeric() {
                 self.position += 1;
             }
-
             let end = self.position;
             let text = &self.text[start..end];
-            let keyword = TokenKind::is_keyword(text);
-            keyword.unwrap_or(TokenKind::BadToken)
+            TokenKind::keyword(text)
+        } else {
+            TokenKind::BadToken
         };
         let end = self.position;
         let text = self.text[start..end].into();
