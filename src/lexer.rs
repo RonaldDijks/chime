@@ -36,6 +36,9 @@ impl Lexer {
             TokenKind::FloatLiteral
         } else if self.current() == '\0' {
             TokenKind::EndOfFile
+        } else if self.current() == '=' {
+            self.position += 1;
+            TokenKind::Equals
         } else if self.current() == '+' {
             self.position += 1;
             TokenKind::Plus

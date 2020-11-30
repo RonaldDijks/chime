@@ -70,10 +70,20 @@ impl Parser {
     }
 
     pub fn parse(&mut self) -> ParserResult<SyntaxTree> {
-        self.parse_expression(0)
+        self.parse_assignment_expression()
     }
 
-    fn parse_expression(&mut self, min_bp: u8) -> ParserResult<SyntaxTree> {
+    fn parse_assignment_expression(&mut self) -> ParserResult<SyntaxTree> {
+        if self.peek(0).kind == TokenKind::Identifier && self.peek(1).kind == TokenKind::Equals {
+            let identifier = self.next();
+            let _operator = self.next();
+            let right = self.parse_assignment_expression()?;
+            return Ok(SyntaxTree::Assignment(identifier.text, Box::new(right)));
+        }
+        self.parse_binary_expression(0)
+    }
+
+    fn parse_binary_expression(&mut self, min_bp: u8) -> ParserResult<SyntaxTree> {
         let mut left = self.parse_primary_statement()?;
 
         loop {
@@ -96,7 +106,7 @@ impl Parser {
 
             self.next();
 
-            let right = self.parse_expression(r_bp)?;
+            let right = self.parse_binary_expression(r_bp)?;
 
             left = SyntaxTree::BinOp(op, Box::new(left), Box::new(right))
         }
@@ -111,13 +121,14 @@ impl Parser {
             TokenKind::FloatLiteral => self.parse_float_literal(),
             TokenKind::True => self.parse_boolean_literal(),
             TokenKind::False => self.parse_boolean_literal(),
+            TokenKind::Identifier => self.parse_identifier(),
             _ => Err(ParserError::UnexpectedToken),
         }
     }
 
     fn parse_parenthesised_expression(&mut self) -> ParserResult<SyntaxTree> {
         self.expect(TokenKind::LeftParenthesis)?;
-        let expr = self.parse_expression(0)?;
+        let expr = self.parse_binary_expression(0)?;
         self.expect(TokenKind::RightParenthesis)?;
         Ok(expr)
     }
@@ -145,5 +156,11 @@ impl Parser {
         }
 
         syntax_tree
+    }
+
+    fn parse_identifier(&mut self) -> ParserResult<SyntaxTree> {
+        let token = self.expect(TokenKind::Identifier)?;
+        let syntax_tree = SyntaxTree::Identifier(token.text);
+        Ok(syntax_tree)
     }
 }

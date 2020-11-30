@@ -3,6 +3,7 @@ use std::io::{self, Write};
 
 pub fn repl() {
     let mut print_tree = false;
+    let mut evaluator = Evaluator::new();
 
     loop {
         print!("> ");
@@ -21,7 +22,6 @@ pub fn repl() {
             println!("syntax_tree: {:?}", syntax_tree);
         }
 
-        let evaluator = Evaluator::new();
         let result = evaluator.evaluate(&syntax_tree);
 
         match result {

@@ -24,5 +24,7 @@ impl BinOpKind {
 pub enum SyntaxTree {
     F64(f64),
     Bool(bool),
+    Identifier(String),
     BinOp(BinOpKind, Box<SyntaxTree>, Box<SyntaxTree>),
+    Assignment(String, Box<SyntaxTree>),
 }

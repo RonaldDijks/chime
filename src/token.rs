@@ -24,6 +24,7 @@ pub enum TokenKind {
     Slash,
     PipePipe,
     AmpersandAmpersand,
+    Equals,
 }
 
 impl TokenKind {
