@@ -21,10 +21,21 @@ impl BinOpKind {
 }
 
 #[derive(Debug)]
-pub enum SyntaxTree {
+pub enum Expression {
     F64(f64),
     Bool(bool),
     Identifier(String),
-    BinOp(BinOpKind, Box<SyntaxTree>, Box<SyntaxTree>),
-    Assignment(String, Box<SyntaxTree>),
+    BinOp(BinOpKind, Box<Expression>, Box<Expression>),
+    Assignment(String, Box<Expression>),
+}
+
+#[derive(Debug)]
+pub enum Statement {
+    ExpressionStatement(Expression),
+    VariableDeclaration(String, Box<Expression>),
+}
+
+#[derive(Debug)]
+pub struct CompilationUnit {
+    pub statement: Statement,
 }

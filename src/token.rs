@@ -16,6 +16,7 @@ pub enum TokenKind {
     True,
     False,
     Identifier,
+    Let,
 
     // Operators
     Plus,
@@ -44,6 +45,7 @@ impl TokenKind {
         match text {
             "true" => TokenKind::True,
             "false" => TokenKind::False,
+            "let" => TokenKind::Let,
             _ => TokenKind::Identifier,
         }
     }

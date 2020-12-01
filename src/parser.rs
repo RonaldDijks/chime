@@ -1,6 +1,6 @@
 use crate::{
     lexer::Lexer,
-    syntax_tree::SyntaxTree,
+    syntax_tree::{CompilationUnit, Expression, Statement},
     token::{Token, TokenKind},
 };
 
@@ -69,21 +69,51 @@ impl Parser {
         }
     }
 
-    pub fn parse(&mut self) -> ParserResult<SyntaxTree> {
+    pub fn parse(&mut self) -> ParserResult<CompilationUnit> {
+        let statement = self.parse_statement()?;
+        self.expect(TokenKind::EndOfFile)?;
+        Ok(CompilationUnit { statement })
+    }
+
+    pub fn parse_statement(&mut self) -> ParserResult<Statement> {
+        if self.current().kind == TokenKind::Let {
+            return self.parse_variable_declaration();
+        }
+
+        self.parse_expression_statement()
+    }
+
+    pub fn parse_variable_declaration(&mut self) -> ParserResult<Statement> {
+        let _keyword = self.expect(TokenKind::Let)?;
+        let identifier = self.expect(TokenKind::Identifier)?;
+        let _equals = self.expect(TokenKind::Equals)?;
+        let expr = self.parse_expression()?;
+        Ok(Statement::VariableDeclaration(
+            identifier.text,
+            Box::new(expr),
+        ))
+    }
+
+    pub fn parse_expression_statement(&mut self) -> ParserResult<Statement> {
+        let expression = self.parse_expression()?;
+        Ok(Statement::ExpressionStatement(expression))
+    }
+
+    pub fn parse_expression(&mut self) -> ParserResult<Expression> {
         self.parse_assignment_expression()
     }
 
-    fn parse_assignment_expression(&mut self) -> ParserResult<SyntaxTree> {
+    fn parse_assignment_expression(&mut self) -> ParserResult<Expression> {
         if self.peek(0).kind == TokenKind::Identifier && self.peek(1).kind == TokenKind::Equals {
             let identifier = self.next();
             let _operator = self.next();
             let right = self.parse_assignment_expression()?;
-            return Ok(SyntaxTree::Assignment(identifier.text, Box::new(right)));
+            return Ok(Expression::Assignment(identifier.text, Box::new(right)));
         }
         self.parse_binary_expression(0)
     }
 
-    fn parse_binary_expression(&mut self, min_bp: u8) -> ParserResult<SyntaxTree> {
+    fn parse_binary_expression(&mut self, min_bp: u8) -> ParserResult<Expression> {
         let mut left = self.parse_primary_statement()?;
 
         loop {
@@ -108,13 +138,13 @@ impl Parser {
 
             let right = self.parse_binary_expression(r_bp)?;
 
-            left = SyntaxTree::BinOp(op, Box::new(left), Box::new(right))
+            left = Expression::BinOp(op, Box::new(left), Box::new(right))
         }
 
         Ok(left)
     }
 
-    fn parse_primary_statement(&mut self) -> ParserResult<SyntaxTree> {
+    fn parse_primary_statement(&mut self) -> ParserResult<Expression> {
         let value = self.current();
         match value.kind {
             TokenKind::LeftParenthesis => self.parse_parenthesised_expression(),
@@ -126,28 +156,28 @@ impl Parser {
         }
     }
 
-    fn parse_parenthesised_expression(&mut self) -> ParserResult<SyntaxTree> {
+    fn parse_parenthesised_expression(&mut self) -> ParserResult<Expression> {
         self.expect(TokenKind::LeftParenthesis)?;
         let expr = self.parse_binary_expression(0)?;
         self.expect(TokenKind::RightParenthesis)?;
         Ok(expr)
     }
 
-    fn parse_float_literal(&mut self) -> ParserResult<SyntaxTree> {
+    fn parse_float_literal(&mut self) -> ParserResult<Expression> {
         let value = self
             .expect(TokenKind::FloatLiteral)?
             .text
             .parse()
             .map_err(|_| ParserError::FloatLiteralParse)?;
-        Ok(SyntaxTree::F64(value))
+        Ok(Expression::F64(value))
     }
 
-    fn parse_boolean_literal(&mut self) -> ParserResult<SyntaxTree> {
+    fn parse_boolean_literal(&mut self) -> ParserResult<Expression> {
         let token = self.current();
 
         let syntax_tree = match token.kind {
-            TokenKind::True => Ok(SyntaxTree::Bool(true)),
-            TokenKind::False => Ok(SyntaxTree::Bool(false)),
+            TokenKind::True => Ok(Expression::Bool(true)),
+            TokenKind::False => Ok(Expression::Bool(false)),
             _ => Err(ParserError::UnexpectedToken),
         };
 
@@ -158,9 +188,9 @@ impl Parser {
         syntax_tree
     }
 
-    fn parse_identifier(&mut self) -> ParserResult<SyntaxTree> {
+    fn parse_identifier(&mut self) -> ParserResult<Expression> {
         let token = self.expect(TokenKind::Identifier)?;
-        let syntax_tree = SyntaxTree::Identifier(token.text);
+        let syntax_tree = Expression::Identifier(token.text);
         Ok(syntax_tree)
     }
 }
